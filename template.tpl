@@ -1,4 +1,12 @@
-﻿___INFO___
+﻿___TERMS_OF_SERVICE___
+
+By creating or modifying this file you agree to Google Tag Manager's Community
+Template Gallery Developer Terms of Service available at
+https://developers.google.com/tag-manager/gallery-tos (or such other URL as
+Google may provide), as modified from time to time.
+
+
+___INFO___
 
 {
   "type": "TAG",
@@ -26,6 +34,11 @@ ___TEMPLATE_PARAMETERS___
     "name": "eventType",
     "displayName": "Event Name Setup Method",
     "radioItems": [
+      {
+        "value": "inherit",
+        "subParams": [],
+        "displayValue": "Inherit from client"
+      },
       {
         "value": "standard",
         "displayValue": "Standard",
@@ -83,15 +96,10 @@ ___TEMPLATE_PARAMETERS___
             "defaultValue": "Generic"
           }
         ]
-      },
-      {
-        "value": "inherit",
-        "subParams": [],
-        "displayValue": "Inherit from client"
       }
     ],
     "simpleValueType": true,
-    "defaultValue": "standard"
+    "defaultValue": "inherit"
   },
   {
     "type": "TEXT",
@@ -166,10 +174,10 @@ ___TEMPLATE_PARAMETERS___
             "valueValidators": [
               {
                 "type": "NON_EMPTY"
+              }
+            ]
           }
-        ]
-      }
-    ],
+        ],
         "newRowButtonText": "Add property"
       }
     ]
@@ -627,7 +635,7 @@ function getEventName(eventData, data) {
     };
   }
 
-    return {
+  return {
     tracking_type: data.eventName,
   };
 }
@@ -641,7 +649,7 @@ function checkRequiredParams(postBody) {
     'conversion.event_id',
     'conversion.click_id',
   ];
-  
+
   required.forEach((item) => {
     let value = postBody;
     item.split('.').forEach((key) => {
@@ -695,11 +703,6 @@ function determinateIsLoggingEnabled() {
   }
 
   return data.logType === 'always';
-}
-
-function enc(data) {
-  data = data || '';
-  return encodeUriComponent(data);
 }
 
 

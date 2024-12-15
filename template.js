@@ -351,8 +351,3 @@ function determinateIsLoggingEnabled() {
 
   return data.logType === 'always';
 }
-
-function enc(data) {
-  data = data || '';
-  return encodeUriComponent(data);
-}
