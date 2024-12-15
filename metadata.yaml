@@ -1,4 +1,5 @@
 homepage: "https://stape.io/"
+documentation: "https://github.com/stape-io/quora-tag"
 versions:
-  - sha: f0a04af0bf035c456a255122a6d5c960e1fe8b49
+  - sha: b5eadfdbb3009bef73c905573102456d9ac35b68
     changeNotes: Initial release.
