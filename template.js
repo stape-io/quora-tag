@@ -17,7 +17,7 @@ const setCookie = require('setCookie');
 
 const eventData = getAllEventData();
 
-if (!isConsentGivenOrNotRequired()) {
+if (!isConsentGivenOrNotRequired(data, eventData)) {
   return data.gtmOnSuccess();
 }
 
