@@ -10,6 +10,7 @@ Quora conversion API tag for Google Tag Manager server container allows sending 
 Tag supports event deduplication.
 
 ### Getting started
+
 According to Quora Conversions API, it is required to use Access Token to send events to Quora server.
 
 ### To use this tag, you'll need:
@@ -18,7 +19,10 @@ According to Quora Conversions API, it is required to use Access Token to send e
 - [Quora Ads Account ID](https://quoraadsupport.zendesk.com/hc/en-us/articles/23065751885069-Conversion-API-Overview)
 - [Quora Conversion API token](https://quoraadsupport.zendesk.com/hc/en-us/articles/23065751885069-Conversion-API-Overview)
 
+## Useful links:
+
+[Step-by-step guide on how to configure Quora tag](https://stape.io/blog/set-up-quora-tag-using-server-gtm)
+
 ## Open Source
 
 Quora Tag for GTM Server Side is developing and maintained by [Stape Team](https://stape.io/) under the Apache 2.0 license.
-
