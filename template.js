@@ -1,30 +1,33 @@
+const decodeUriComponent = require('decodeUriComponent');
 const getAllEventData = require('getAllEventData');
+const getContainerVersion = require('getContainerVersion');
+const getCookieValues = require('getCookieValues');
+const getRequestHeader = require('getRequestHeader');
+const getTimestampMillis = require('getTimestampMillis');
+const getType = require('getType');
 const JSON = require('JSON');
+const logToConsole = require('logToConsole');
+const makeNumber = require('makeNumber');
+const parseUrl = require('parseUrl');
 const sendHttpRequest = require('sendHttpRequest');
 const setCookie = require('setCookie');
-const getCookieValues = require('getCookieValues');
-const getContainerVersion = require('getContainerVersion');
-const logToConsole = require('logToConsole');
-const getRequestHeader = require('getRequestHeader');
-const parseUrl = require('parseUrl');
-const decodeUriComponent = require('decodeUriComponent');
-const getType = require('getType');
-const getTimestampMillis = require('getTimestampMillis');
-const makeNumber = require('makeNumber');
-const encodeUriComponent = require('encodeUriComponent');
 
-const isLoggingEnabled = determinateIsLoggingEnabled();
-const traceId = isLoggingEnabled ? getRequestHeader('trace-id') : undefined;
+/*==============================================================================
+==============================================================================*/
 
 const eventData = getAllEventData();
 
+if (!isConsentGivenOrNotRequired(data, eventData)) {
+  return data.gtmOnSuccess();
+}
+
+const isLoggingEnabled = determinateIsLoggingEnabled();
+const traceId = isLoggingEnabled ? getRequestHeader('trace-id') : undefined;
 const apiVersion = '0';
 const postUrl = 'https://api.quora.com/ads/v' + apiVersion + '/conversion';
 const eventType = getEventName(eventData, data);
 const eventName =
-  eventType.tracking_type === 'Custom'
-    ? eventType.custom_event_name
-    : eventType.tracking_type;
+  eventType.tracking_type === 'Custom' ? eventType.custom_event_name : eventType.tracking_type;
 const url = eventData.page_location || getRequestHeader('referer');
 let qclid = getCookieValues('qclid')[0] || eventData.qclid;
 
@@ -45,7 +48,7 @@ if (qclid) {
     samesite: 'Lax',
     secure: true,
     'max-age': 2592000, // 30 days
-    httpOnly: false,
+    httpOnly: false
   });
 }
 
@@ -60,7 +63,7 @@ log({
   EventName: eventName,
   RequestMethod: 'POST',
   RequestUrl: postUrl,
-  RequestBody: postBody,
+  RequestBody: postBody
 });
 
 sendHttpRequest(
@@ -73,7 +76,7 @@ sendHttpRequest(
       EventName: eventName,
       ResponseStatusCode: statusCode,
       ResponseHeaders: headers,
-      ResponseBody: body,
+      ResponseBody: body
     });
 
     if (!data.useOptimisticScenario) {
@@ -87,25 +90,29 @@ sendHttpRequest(
   {
     headers: {
       'Content-Type': 'application/json',
-      Authorization: 'Bearer ' + data.accessToken,
+      Authorization: 'Bearer ' + data.accessToken
     },
-    method: 'POST',
+    method: 'POST'
   },
-  JSON.stringify(postBody),
+  JSON.stringify(postBody)
 );
 
 if (data.useOptimisticScenario) {
   data.gtmOnSuccess();
 }
 
+/*==============================================================================
+Vendor related functions
+==============================================================================*/
+
 function mapEvent(eventData, data) {
   let mappedData = {
     account_id: data.accountId,
     conversion: {
-      event_name: eventName,
+      event_name: eventName
     },
     user: {},
-    device: {},
+    device: {}
   };
 
   mappedData = addConversionData(eventData, mappedData);
@@ -116,8 +123,7 @@ function mapEvent(eventData, data) {
 }
 
 function addConversionData(evenData, mappedData) {
-  if (eventData.timestamp)
-    mappedData.conversion.timestamp = eventData.timestamp * 1000;
+  if (eventData.timestamp) mappedData.conversion.timestamp = eventData.timestamp * 1000;
   else mappedData.conversion.timestamp = getTimestampMillis() * 1000;
 
   if (eventData.event_id) mappedData.conversion.event_id = eventData.event_id;
@@ -136,12 +142,9 @@ function addConversionData(evenData, mappedData) {
 }
 
 function addDeviceData(eventData, mappedData) {
-  if (eventData.mobile_device_id)
-    mappedData.device.mobile_device_id = eventData.mobile_device_id;
-  if (eventData.page_referrer)
-    mappedData.device.referrer = eventData.page_referrer;
-  if (eventData.user_agent)
-    mappedData.device.client_user_agent = eventData.user_agent;
+  if (eventData.mobile_device_id) mappedData.device.mobile_device_id = eventData.mobile_device_id;
+  if (eventData.page_referrer) mappedData.device.referrer = eventData.page_referrer;
+  if (eventData.user_agent) mappedData.device.client_user_agent = eventData.user_agent;
   if (eventData.language) mappedData.device.language = eventData.language;
   if (data.deviceEventDataList) {
     data.deviceEventDataList.forEach((d) => {
@@ -159,8 +162,7 @@ function addUserData(eventData, mappedData) {
   let last_name = '';
 
   if (getType(eventData.user_data) === 'object') {
-    user_data =
-      eventData.user_data || eventData.user_properties || eventData.user;
+    user_data = eventData.user_data || eventData.user_properties || eventData.user;
     const addressType = getType(user_data.address);
     if (addressType === 'object' || addressType === 'array') {
       address = user_data.address[0] || user_data.address;
@@ -168,11 +170,9 @@ function addUserData(eventData, mappedData) {
   }
 
   if (eventData.email) mappedData.user.email = eventData.email;
-  else if (eventData.email_address)
-    mappedData.user.email = eventData.email_address;
+  else if (eventData.email_address) mappedData.user.email = eventData.email_address;
   else if (user_data.email) mappedData.user.email = user_data.email;
-  else if (user_data.email_address)
-    mappedData.user.email = user_data.email_address;
+  else if (user_data.email_address) mappedData.user.email = user_data.email_address;
 
   if (eventData.ip_override) mappedData.user.ip = eventData.ip_override;
   else if (eventData.ip_address) mappedData.user.ip = eventData.ip_address;
@@ -196,8 +196,7 @@ function addUserData(eventData, mappedData) {
     mappedData.user.name = (first_name + ' ' + last_name).trim();
   }
   if (eventData.phone) mappedData.user.phone_number = eventData.phone;
-  else if (user_data.phone_number)
-    mappedData.user.phone_number = user_data.phone_number;
+  else if (user_data.phone_number) mappedData.user.phone_number = user_data.phone_number;
 
   if (eventData.countryCode) mappedData.user.country = eventData.countryCode;
   else if (eventData.country) mappedData.user.country = eventData.country;
@@ -210,23 +209,18 @@ function addUserData(eventData, mappedData) {
   else if (address.region) mappedData.user.region = address.region;
 
   if (eventData.zip) mappedData.user.postal_code = eventData.zip;
-  else if (eventData.postal_code)
-    mappedData.user.postal_code = eventData.postal_code;
-  else if (user_data.postal_code)
-    mappedData.user.postal_code = user_data.postal_code;
-  else if (address.postal_code)
-    mappedData.user.postal_code = address.postal_code;
+  else if (eventData.postal_code) mappedData.user.postal_code = eventData.postal_code;
+  else if (user_data.postal_code) mappedData.user.postal_code = user_data.postal_code;
+  else if (address.postal_code) mappedData.user.postal_code = address.postal_code;
 
   if (eventData.city) mappedData.user.city = eventData.city;
   else if (address.city) mappedData.user.city = address.city;
 
-  if (eventData.company_name)
-    mappedData.user.company_name = eventData.company_name;
+  if (eventData.company_name) mappedData.user.company_name = eventData.company_name;
 
   if (eventData.job_title) mappedData.user.job_title = eventData.job_title;
 
-  if (eventData.date_of_birth)
-    mappedData.user.date_of_birth = eventData.date_of_birth;
+  if (eventData.date_of_birth) mappedData.user.date_of_birth = eventData.date_of_birth;
 
   if (data.userDataList) {
     data.userDataList.forEach((d) => {
@@ -267,23 +261,23 @@ function getEventName(eventData, data) {
       'gtm4wp.productClickEEC': 'Generic',
       'gtm4wp.checkoutOptionEEC': 'InitiateCheckout',
       'gtm4wp.checkoutStepEEC': 'AddPaymentInfo',
-      'gtm4wp.orderCompletedEEC': 'Purchase',
+      'gtm4wp.orderCompletedEEC': 'Purchase'
     };
 
     if (!gaToEventName[eventName]) {
       return {
         tracking_type: 'Custom',
-        custom_event_name: eventName,
+        custom_event_name: eventName
       };
     }
 
     return {
-      tracking_type: gaToEventName[eventName],
+      tracking_type: gaToEventName[eventName]
     };
   }
 
   return {
-    tracking_type: data.eventName,
+    tracking_type: data.eventName
   };
 }
 
@@ -294,7 +288,7 @@ function checkRequiredParams(postBody) {
     'account_id',
     'conversion.event_name',
     'conversion.event_id',
-    'conversion.click_id',
+    'conversion.click_id'
   ];
 
   required.forEach((item) => {
@@ -318,10 +312,21 @@ function checkRequiredParams(postBody) {
       TraceId: traceId,
       EventName: eventName,
       Error: 'Missing params: ' + error,
-      Body: postBody,
+      Body: postBody
     });
   }
   return failed;
+}
+
+/*==============================================================================
+Helpers
+==============================================================================*/
+
+function isConsentGivenOrNotRequired(data, eventData) {
+  if (data.adStorageConsent !== 'required') return true;
+  if (eventData.consent_state) return !!eventData.consent_state.ad_storage;
+  const xGaGcs = eventData['x-ga-gcs'] || ''; // x-ga-gcs is a string like "G110"
+  return xGaGcs[2] === '1';
 }
 
 function log(logObject) {
