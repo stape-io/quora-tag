@@ -1,6 +1,5 @@
 const decodeUriComponent = require('decodeUriComponent');
 const getAllEventData = require('getAllEventData');
-const getContainerVersion = require('getContainerVersion');
 const getCookieValues = require('getCookieValues');
 const getRequestHeader = require('getRequestHeader');
 const getTimestampMillis = require('getTimestampMillis');
@@ -21,8 +20,6 @@ if (!isConsentGivenOrNotRequired(data, eventData)) {
   return data.gtmOnSuccess();
 }
 
-const isLoggingEnabled = determinateIsLoggingEnabled();
-const traceId = isLoggingEnabled ? getRequestHeader('trace-id') : undefined;
 const apiVersion = '0';
 const postUrl = 'https://api.quora.com/ads/v' + apiVersion + '/conversion';
 const eventType = getEventName(eventData, data);
@@ -56,29 +53,9 @@ if (checkRequiredParams(postBody)) {
   return data.gtmOnFailure();
 }
 
-log({
-  Name: 'Quora',
-  Type: 'Request',
-  TraceId: traceId,
-  EventName: eventName,
-  RequestMethod: 'POST',
-  RequestUrl: postUrl,
-  RequestBody: postBody
-});
-
 sendHttpRequest(
   postUrl,
   (statusCode, headers, body) => {
-    log({
-      Name: 'Quora',
-      Type: 'Response',
-      TraceId: traceId,
-      EventName: eventName,
-      ResponseStatusCode: statusCode,
-      ResponseHeaders: headers,
-      ResponseBody: body
-    });
-
     if (!data.useOptimisticScenario) {
       if (statusCode >= 200 && statusCode < 400) {
         data.gtmOnSuccess();
@@ -122,9 +99,9 @@ function mapEvent(eventData, data) {
   return mappedData;
 }
 
-function addConversionData(evenData, mappedData) {
-  if (eventData.timestamp) mappedData.conversion.timestamp = eventData.timestamp * 1000;
-  else mappedData.conversion.timestamp = getTimestampMillis() * 1000;
+function addConversionData(eventData, mappedData) {
+  const timestamp = eventData.timestamp || getTimestampMillis();
+  if (timestamp) mappedData.conversion.timestamp = timestamp * 1000;
 
   if (eventData.event_id) mappedData.conversion.event_id = eventData.event_id;
   if (eventData.value) mappedData.value = makeNumber(eventData.value);
@@ -169,52 +146,51 @@ function addUserData(eventData, mappedData) {
     }
   }
 
-  if (eventData.email) mappedData.user.email = eventData.email;
-  else if (eventData.email_address) mappedData.user.email = eventData.email_address;
-  else if (user_data.email) mappedData.user.email = user_data.email;
-  else if (user_data.email_address) mappedData.user.email = user_data.email_address;
+  const email =
+    eventData.email || eventData.email_address || user_data.email || user_data.email_address;
+  if (email) mappedData.user.email = email;
 
-  if (eventData.ip_override) mappedData.user.ip = eventData.ip_override;
-  else if (eventData.ip_address) mappedData.user.ip = eventData.ip_address;
-  else if (eventData.ip) mappedData.user.ip = eventData.ip;
+  const ip = eventData.ip_override || eventData.ip_address || eventData.ip;
+  if (ip) mappedData.user.ip = ip;
 
-  if (eventData.lastName) last_name = eventData.lastName;
-  else if (eventData.LastName) last_name = eventData.LastName;
-  else if (eventData.nameLast) last_name = eventData.nameLast;
-  else if (eventData.last_name) last_name = eventData.last_name;
-  else if (user_data.last_name) last_name = user_data.last_name;
-  else if (address.first_name) last_name = address.first_name;
+  const lastName =
+    eventData.lastName ||
+    eventData.LastName ||
+    eventData.nameLast ||
+    eventData.last_name ||
+    user_data.last_name ||
+    address.last_name ||
+    '';
 
-  if (eventData.firstName) first_name = eventData.firstName;
-  else if (eventData.FirstName) first_name = eventData.FirstName;
-  else if (eventData.nameFirst) first_name = eventData.nameFirst;
-  else if (eventData.first_name) first_name = eventData.first_name;
-  else if (user_data.first_name) first_name = user_data.first_name;
-  else if (address.first_name) first_name = address.first_name;
+  const firstName =
+    eventData.firstName ||
+    eventData.FirstName ||
+    eventData.nameFirst ||
+    eventData.first_name ||
+    user_data.first_name ||
+    address.first_name ||
+    '';
 
-  if ((first_name + last_name).length >= 1) {
-    mappedData.user.name = (first_name + ' ' + last_name).trim();
+  if ((firstName + lastName).length >= 1) {
+    mappedData.user.name = (firstName + ' ' + lastName).trim();
   }
-  if (eventData.phone) mappedData.user.phone_number = eventData.phone;
-  else if (user_data.phone_number) mappedData.user.phone_number = user_data.phone_number;
 
-  if (eventData.countryCode) mappedData.user.country = eventData.countryCode;
-  else if (eventData.country) mappedData.user.country = eventData.country;
-  else if (user_data.country) mappedData.user.country = user_data.country;
-  else if (address.country) mappedData.user.country = address.country;
+  const phone = eventData.phone || user_data.phone_number;
+  if (phone) mappedData.user.phone_number = phone;
 
-  if (eventData.state) mappedData.user.region = eventData.state;
-  else if (eventData.region) mappedData.user.region = eventData.region;
-  else if (user_data.region) mappedData.user.region = user_data.region;
-  else if (address.region) mappedData.user.region = address.region;
+  const countryCode =
+    eventData.countryCode || eventData.country || user_data.country || address.country;
+  if (countryCode) mappedData.user.country = countryCode;
 
-  if (eventData.zip) mappedData.user.postal_code = eventData.zip;
-  else if (eventData.postal_code) mappedData.user.postal_code = eventData.postal_code;
-  else if (user_data.postal_code) mappedData.user.postal_code = user_data.postal_code;
-  else if (address.postal_code) mappedData.user.postal_code = address.postal_code;
+  const state = eventData.state || eventData.region || user_data.region || address.region;
+  if (state) mappedData.user.region = state;
 
-  if (eventData.city) mappedData.user.city = eventData.city;
-  else if (address.city) mappedData.user.city = address.city;
+  const zip =
+    eventData.zip || eventData.postal_code || user_data.postal_code || address.postal_code;
+  if (zip) mappedData.user.postal_code = zip;
+
+  const city = eventData.city || address.city;
+  if (city) mappedData.user.city = city;
 
   if (eventData.company_name) mappedData.user.company_name = eventData.company_name;
 
@@ -305,16 +281,17 @@ function checkRequiredParams(postBody) {
       failed = true;
     }
   });
+
   if (failed) {
     log({
       Name: 'Quora',
       Type: 'Message',
-      TraceId: traceId,
       EventName: eventName,
-      Error: 'Missing params: ' + error,
+      Error: '🛑 [ERROR] Missing params: ' + error,
       Body: postBody
     });
   }
+
   return failed;
 }
 
@@ -329,30 +306,7 @@ function isConsentGivenOrNotRequired(data, eventData) {
   return xGaGcs[2] === '1';
 }
 
-function log(logObject) {
-  if (isLoggingEnabled) {
-    logToConsole(JSON.stringify(logObject));
-  }
-}
-
-function determinateIsLoggingEnabled() {
-  const containerVersion = getContainerVersion();
-  const isDebug = !!(
-    containerVersion &&
-    (containerVersion.debugMode || containerVersion.previewMode)
-  );
-
-  if (!data.logType) {
-    return isDebug;
-  }
-
-  if (data.logType === 'no') {
-    return false;
-  }
-
-  if (data.logType === 'debug') {
-    return isDebug;
-  }
-
-  return data.logType === 'always';
+function log(rawDataToLog) {
+  rawDataToLog.TraceId = getRequestHeader('trace-id');
+  logToConsole(JSON.stringify(rawDataToLog));
 }

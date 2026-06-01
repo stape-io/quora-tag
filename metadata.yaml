@@ -1,6 +1,8 @@
 homepage: 'https://stape.io/'
 documentation: 'https://github.com/stape-io/quora-tag'
 versions:
+  - sha: ee227274ecf8bfb8438a7de7b6cbc50c5f99dd3f
+    changeNotes: Logging removal.
   - sha: 11fbffd4502e0570322ece727ecfec230704c622
     changeNotes: Added consent section.
   - sha: b5eadfdbb3009bef73c905573102456d9ac35b68
